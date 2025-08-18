@@ -89,10 +89,8 @@ Dashboard/
 ├── app.py                 # Full version with Google Sheets
 ├── app_simple.py          # Simplified version (CSV only)
 ├── requirements.txt       # Python dependencies
-├── setup_google_sheets.py # Google Sheets connection test
 ├── google_sheets_setup.md # Setup guide for Google Sheets
-├── DEPLOYMENT_GUIDE.md    # Deployment instructions
-├── QUICK_SETUP.md         # Quick start guide
+├── STREAMLIT_CLOUD_DEPLOYMENT.md # Deployment instructions
 ├── JNG_GTM_Dashboard-Tracker.csv  # Main data file
 ├── Book1.csv              # Summary data
 ├── Book2.csv              # Additional metrics
@@ -130,8 +128,8 @@ This project is open source and available under the [MIT License](LICENSE).
 
 ## 🆘 Support
 
-- Check the `QUICK_SETUP.md` for troubleshooting
 - Review `google_sheets_setup.md` for Google Sheets integration
+- Check `STREAMLIT_CLOUD_DEPLOYMENT.md` for deployment help
 - Open an issue for bugs or feature requests
 
 ## 🎉 Acknowledgments
