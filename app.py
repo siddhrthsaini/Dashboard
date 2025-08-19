@@ -17,7 +17,6 @@ st.set_page_config(
 )
 
 # Add caching for Google Sheets data to improve performance
-@st.cache_data(ttl=300)  # Cache for 5 minutes
 def load_google_sheet_cached(sheet_url, worksheet_name):
     """Cached version of load_google_sheet for better performance"""
     return load_google_sheet(sheet_url, worksheet_name)
@@ -90,6 +89,9 @@ def load_google_sheet(sheet_url, worksheet_name):
         
     except Exception as e:
         st.error(f"Error loading {worksheet_name}: {str(e)}")
+        st.write(f"Exception type: {type(e)}")
+        import traceback
+        st.write(f"Traceback: {traceback.format_exc()}")
         return None
 
 @st.cache_data
@@ -169,10 +171,19 @@ with st.sidebar:
                     df2 = load_google_sheet_cached(sheet_url, "Summary")    # Summary data
                     df3 = df2  # Use df2 for summary metrics
                 
+                # Debug information
+                st.write(f"Debug: df1 is None: {df1 is None}")
+                st.write(f"Debug: df2 is None: {df2 is None}")
+                
                 if df1 is not None:
                     st.success(f"✅ Successfully loaded Dashboard sheet with {len(df1)} rows")
+                else:
+                    st.error("❌ Failed to load Dashboard sheet")
+                    
                 if df2 is not None:
                     st.success(f"✅ Successfully loaded Summary sheet with {len(df2)} rows")
+                else:
+                    st.error("❌ Failed to load Summary sheet")
                     
             else:
                 df1, df2, df3 = None, None, None
