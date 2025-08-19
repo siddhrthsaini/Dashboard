@@ -367,6 +367,35 @@ if df2 is not None:
     else:
         st.warning("No summary data available")
 
+# Create Strategic Pillars Summary from main tracker data
+if df1 is not None and "pillar" in col_map:
+    st.subheader("🏛️ Strategic Pillars Summary")
+    
+    # Create summary by strategic pillar using a simpler approach
+    pillar_summary = df1.groupby(col_map["pillar"])[col_map["status"]].value_counts().unstack(fill_value=0).reset_index()
+    
+    # Ensure we have all status columns
+    if 'Completed' not in pillar_summary.columns:
+        pillar_summary['Completed'] = 0
+    if 'In Progress' not in pillar_summary.columns:
+        pillar_summary['In Progress'] = 0
+    if 'Not Started' not in pillar_summary.columns:
+        pillar_summary['Not Started'] = 0
+    
+    # Calculate totals and percentages
+    pillar_summary['Total'] = pillar_summary[['Completed', 'In Progress', 'Not Started']].sum(axis=1)
+    pillar_summary['% Completed'] = (pillar_summary['Completed'] / pillar_summary['Total'] * 100).round(1)
+    
+    # Reorder columns
+    pillar_summary = pillar_summary[["Strategic Pillar", "Total", "Completed", "In Progress", "Not Started", "% Completed"]]
+    
+    # Display strategic pillars summary
+    st.dataframe(pillar_summary, use_container_width=True)
+    
+    # Export strategic pillars summary
+    csv_pillars = pillar_summary.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Download Strategic Pillars Summary as CSV", data=csv_pillars, file_name="strategic_pillars_summary.csv", mime="text/csv")
+
 # Show raw data tables for debugging
 with st.expander("🔍 Raw Data Tables (for debugging)"):
     if df1 is not None:
