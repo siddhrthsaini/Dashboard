@@ -35,13 +35,53 @@ def load_google_sheet(sheet_url, worksheet_name):
             st.error(f"Worksheet '{worksheet_name}' not found. Available sheets: {[ws.title for ws in sheet.worksheets()]}")
             return None
         
-        # Get all data
-        data = worksheet.get_all_records()
-        if not data:
+        # Get all data as raw values first
+        all_values = worksheet.get_all_values()
+        if not all_values:
             st.warning(f"No data found in worksheet '{worksheet_name}'")
             return None
+        
+        # Clean up empty columns for Summary sheet
+        if worksheet_name == "Summary":
+            # Remove completely empty columns
+            cleaned_values = []
+            for row in all_values:
+                # Keep only non-empty columns
+                cleaned_row = [cell for cell in row if cell.strip()]
+                if cleaned_row:  # Only add rows that have some data
+                    cleaned_values.append(cleaned_row)
             
-        df = pd.DataFrame(data)
+            if len(cleaned_values) < 2:  # Need at least header + 1 data row
+                st.warning(f"Insufficient data in Summary worksheet")
+                return None
+            
+            # Find the maximum number of columns
+            max_cols = max(len(row) for row in cleaned_values)
+            
+            # Pad rows to have the same number of columns
+            padded_values = []
+            for row in cleaned_values:
+                padded_row = row + [''] * (max_cols - len(row))
+                padded_values.append(padded_row)
+            
+            # Create DataFrame manually
+            df = pd.DataFrame(padded_values[1:], columns=padded_values[0])
+            
+            # Remove completely empty columns
+            df = df.dropna(axis=1, how='all')
+            df = df.dropna(axis=0, how='all')
+        else:
+            # For other sheets, use the standard method
+            try:
+                data = worksheet.get_all_records()
+                df = pd.DataFrame(data)
+            except Exception as e:
+                # Fallback to manual processing if get_all_records fails
+                st.warning(f"Using fallback method for {worksheet_name}: {e}")
+                if len(all_values) < 2:
+                    return None
+                df = pd.DataFrame(all_values[1:], columns=all_values[0])
+        
         st.success(f"✅ Loaded {len(df)} rows from '{worksheet_name}' sheet")
         return df
         
@@ -297,12 +337,37 @@ if df2 is not None:
         st.info("📈 Data from Google Sheets 'Summary' sheet - Updates automatically!")
     else:
         st.info("📈 Data from uploaded CSV or local file")
-    st.dataframe(df2, use_container_width=True)
     
-    # Export summary data
+    # Display summary data nicely
     if len(df2) > 0:
+        # Try to create a nice summary display
+        if 'Summary Metric' in df2.columns and 'Value' in df2.columns:
+            # Create summary cards
+            col1, col2, col3, col4 = st.columns(4)
+            
+            # Find key metrics
+            total_deliverables = df2[df2['Summary Metric'] == 'Total Deliverables']['Value'].iloc[0] if len(df2[df2['Summary Metric'] == 'Total Deliverables']) > 0 else 'N/A'
+            not_started = df2[df2['Summary Metric'] == 'Not Started (count)']['Value'].iloc[0] if len(df2[df2['Summary Metric'] == 'Not Started (count)']) > 0 else 'N/A'
+            in_progress = df2[df2['Summary Metric'] == 'In Progress (count)']['Value'].iloc[0] if len(df2[df2['Summary Metric'] == 'In Progress (count)']) > 0 else 'N/A'
+            completed = df2[df2['Summary Metric'] == 'Completed (count)']['Value'].iloc[0] if len(df2[df2['Summary Metric'] == 'Completed (count)']) > 0 else 'N/A'
+            
+            with col1:
+                st.metric("Total Deliverables", total_deliverables)
+            with col2:
+                st.metric("Not Started", not_started)
+            with col3:
+                st.metric("In Progress", in_progress)
+            with col4:
+                st.metric("Completed", completed)
+        
+        # Show the full data table
+        st.dataframe(df2, use_container_width=True)
+        
+        # Export summary data
         csv_summary = df2.to_csv(index=False).encode("utf-8")
         st.download_button("⬇️ Download summary data as CSV", data=csv_summary, file_name="summary_data.csv", mime="text/csv")
+    else:
+        st.warning("No summary data available")
 
 # Show raw data tables for debugging
 with st.expander("🔍 Raw Data Tables (for debugging)"):
