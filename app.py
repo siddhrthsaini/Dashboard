@@ -171,9 +171,7 @@ with st.sidebar:
                     df2 = load_google_sheet_cached(sheet_url, "Summary")    # Summary data
                     df3 = df2  # Use df2 for summary metrics
                 
-                # Debug information
-                st.write(f"Debug: df1 is None: {df1 is None}")
-                st.write(f"Debug: df2 is None: {df2 is None}")
+
                 
                 if df1 is not None:
                     st.success(f"✅ Successfully loaded Dashboard sheet with {len(df1)} rows")
