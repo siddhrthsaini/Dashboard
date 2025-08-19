@@ -349,6 +349,9 @@ if df1 is not None and "pillar" in col_map:
     pillar_summary['Total'] = pillar_summary[['Completed', 'In Progress', 'Not Started']].sum(axis=1)
     pillar_summary['% Completed'] = (pillar_summary['Completed'] / pillar_summary['Total'] * 100).round(1)
     
+    # Rename the first column to "Strategic Pillar"
+    pillar_summary = pillar_summary.rename(columns={col_map["pillar"]: "Strategic Pillar"})
+    
     # Reorder columns
     pillar_summary = pillar_summary[["Strategic Pillar", "Total", "Completed", "In Progress", "Not Started", "% Completed"]]
     
