@@ -8,83 +8,48 @@ from google.oauth2.service_account import Credentials
 import time
 import os
 
-st.set_page_config(page_title="Progress Dashboard", page_icon="📊", layout="wide")
+# Configure page
+st.set_page_config(
+    page_title="Progress Dashboard",
+    page_icon="📊",
+    layout="wide",
+    initial_sidebar_state="expanded"
+)
 
-# Google Sheets setup
+# Add caching for Google Sheets data to improve performance
+@st.cache_data(ttl=300)  # Cache for 5 minutes
+def load_google_sheet_cached(sheet_url, worksheet_name):
+    """Cached version of load_google_sheet for better performance"""
+    return load_google_sheet(sheet_url, worksheet_name)
+
 def load_google_sheet(sheet_url, worksheet_name):
-    """Load data from Google Sheets for live updates"""
+    """Load data from Google Sheets with error handling"""
     try:
         # Check if credentials file exists
         if not os.path.exists('google-credentials.json'):
-            st.error("Google credentials file not found. Please follow the setup guide.")
+            st.error("Google credentials file not found.")
             return None
-            
+        
         # Set up credentials
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds = Credentials.from_service_account_file('google-credentials.json', scopes=scope)
-        client = gspread.authorize(creds)
+        client = gspread.authorize(creads)
         
         # Extract sheet ID from URL
         sheet_id = sheet_url.split('/')[5]
+        
+        # Open the sheet
         sheet = client.open_by_key(sheet_id)
+        worksheet = sheet.worksheet(worksheet_name)
         
-        # Try to get the specific worksheet
-        try:
-            worksheet = sheet.worksheet(worksheet_name)
-        except gspread.WorksheetNotFound:
-            st.error(f"Worksheet '{worksheet_name}' not found. Available sheets: {[ws.title for ws in sheet.worksheets()]}")
-            return None
+        # Get all data
+        all_records = worksheet.get_all_records()
+        df = pd.DataFrame(all_records)
         
-        # Get all data as raw values first
-        all_values = worksheet.get_all_values()
-        if not all_values:
-            st.warning(f"No data found in worksheet '{worksheet_name}'")
-            return None
-        
-        # Clean up empty columns for Summary sheet
-        if worksheet_name == "Summary":
-            # Remove completely empty columns
-            cleaned_values = []
-            for row in all_values:
-                # Keep only non-empty columns
-                cleaned_row = [cell for cell in row if cell.strip()]
-                if cleaned_row:  # Only add rows that have some data
-                    cleaned_values.append(cleaned_row)
-            
-            if len(cleaned_values) < 2:  # Need at least header + 1 data row
-                st.warning(f"Insufficient data in Summary worksheet")
-                return None
-            
-            # Create DataFrame with only the first two columns
-            if len(cleaned_values[0]) >= 2:
-                # Take only the first two columns from each row
-                summary_data = []
-                for row in cleaned_values:
-                    if len(row) >= 2:
-                        summary_data.append([row[0], row[1]])
-                
-                # Create DataFrame
-                df = pd.DataFrame(summary_data[1:], columns=['Summary Metric', 'Value'])
-            else:
-                st.warning(f"Insufficient columns in Summary worksheet")
-                return None
-        else:
-            # For other sheets, use the standard method
-            try:
-                data = worksheet.get_all_records()
-                df = pd.DataFrame(data)
-            except Exception as e:
-                # Fallback to manual processing if get_all_records fails
-                st.warning(f"Using fallback method for {worksheet_name}: {e}")
-                if len(all_values) < 2:
-                    return None
-                df = pd.DataFrame(all_values[1:], columns=all_values[0])
-        
-        st.success(f"✅ Loaded {len(df)} rows from '{worksheet_name}' sheet")
         return df
         
     except Exception as e:
-        st.error(f"Google Sheets error: {e}")
+        st.error(f"Error loading {worksheet_name}: {str(e)}")
         return None
 
 @st.cache_data
@@ -114,7 +79,7 @@ with st.sidebar:
         index=1  # Default to Google Sheets since it's working
     )
     
-    # Auto-refresh toggle
+    # Auto-refresh toggle (disabled for faster deployment)
     auto_refresh = st.checkbox("🔄 Auto-refresh every 30 seconds", value=False)
     if auto_refresh:
         st.info("Auto-refresh enabled! Data will update automatically.")
@@ -158,12 +123,11 @@ with st.sidebar:
             )
             
             if sheet_url:
-                st.info("🔄 Loading data from Google Sheets...")
-                
-                # Load both sheets: "JNG V2.0_GTM Dashboard" and "Summary"
-                df1 = load_google_sheet(sheet_url, "JNG V2.0_GTM Dashboard")  # Main tracker data
-                df2 = load_google_sheet(sheet_url, "Summary")    # Summary data
-                df3 = None  # We'll use df2 for summary metrics
+                with st.spinner("🔄 Loading data from Google Sheets..."):
+                    # Load both sheets: "JNG V2.0_GTM Dashboard" and "Summary"
+                    df1 = load_google_sheet_cached(sheet_url, "JNG V2.0_GTM Dashboard")  # Main tracker data
+                    df2 = load_google_sheet_cached(sheet_url, "Summary")    # Summary data
+                    df3 = None  # We'll use df2 for summary metrics
                 
                 if df1 is not None:
                     st.success(f"✅ Successfully loaded Dashboard sheet with {len(df1)} rows")
@@ -274,13 +238,14 @@ if df1 is not None:
     # ---- Charts ----
     st.subheader("📈 Status Distribution")
     if "status" in col_map:
-        status_counts = df1_f[col_map["status"]].value_counts(dropna=False).rename_axis("Status").reset_index(name="Count")
-        chart1 = alt.Chart(status_counts).mark_bar().encode(
-            x=alt.X("Status:N", sort='-y'),
-            y="Count:Q",
-            tooltip=["Status:N","Count:Q"]
-        ).properties(height=300)
-        st.altair_chart(chart1, use_container_width=True)
+        with st.spinner("Generating charts..."):
+            status_counts = df1_f[col_map["status"]].value_counts(dropna=False).rename_axis("Status").reset_index(name="Count")
+            chart1 = alt.Chart(status_counts).mark_bar().encode(
+                x=alt.X("Status:N", sort='-y'),
+                y="Count:Q",
+                tooltip=["Status:N","Count:Q"]
+            ).properties(height=300)
+            st.altair_chart(chart1, use_container_width=True)
     else:
         st.info("Status column not found for chart.")
 
