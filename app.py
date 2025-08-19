@@ -55,21 +55,19 @@ def load_google_sheet(sheet_url, worksheet_name):
                 st.warning(f"Insufficient data in Summary worksheet")
                 return None
             
-            # Find the maximum number of columns
-            max_cols = max(len(row) for row in cleaned_values)
-            
-            # Pad rows to have the same number of columns
-            padded_values = []
-            for row in cleaned_values:
-                padded_row = row + [''] * (max_cols - len(row))
-                padded_values.append(padded_row)
-            
-            # Create DataFrame manually
-            df = pd.DataFrame(padded_values[1:], columns=padded_values[0])
-            
-            # Remove completely empty columns
-            df = df.dropna(axis=1, how='all')
-            df = df.dropna(axis=0, how='all')
+            # Create DataFrame with only the first two columns
+            if len(cleaned_values[0]) >= 2:
+                # Take only the first two columns from each row
+                summary_data = []
+                for row in cleaned_values:
+                    if len(row) >= 2:
+                        summary_data.append([row[0], row[1]])
+                
+                # Create DataFrame
+                df = pd.DataFrame(summary_data[1:], columns=['Summary Metric', 'Value'])
+            else:
+                st.warning(f"Insufficient columns in Summary worksheet")
+                return None
         else:
             # For other sheets, use the standard method
             try:
