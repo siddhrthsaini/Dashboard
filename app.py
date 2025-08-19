@@ -36,15 +36,55 @@ def load_google_sheet(sheet_url, worksheet_name):
         client = gspread.authorize(creads)
         
         # Extract sheet ID from URL
-        sheet_id = sheet_url.split('/')[5]
+        sheet_id = sheet_url.split('/d/')[1].split('/')[0]
         
         # Open the sheet
         sheet = client.open_by_key(sheet_id)
-        worksheet = sheet.worksheet(worksheet_name)
         
-        # Get all data
-        all_records = worksheet.get_all_records()
-        df = pd.DataFrame(all_records)
+        try:
+            worksheet = sheet.worksheet(worksheet_name)
+        except gspread.WorksheetNotFound:
+            st.error(f"Worksheet '{worksheet_name}' not found in the Google Sheet.")
+            return None
+        
+        # Special handling for Summary sheet to avoid duplicate column errors
+        if worksheet_name == "Summary":
+            # Get all values and manually process to avoid duplicate columns
+            all_values = worksheet.get_all_values()
+            
+            # Clean empty cells and ensure consistent structure
+            cleaned_values = []
+            max_cols = 0
+            
+            for row in all_values:
+                # Remove empty cells from the end
+                while row and row[-1] == '':
+                    row = row[:-1]
+                cleaned_values.append(row)
+                max_cols = max(max_cols, len(row))
+            
+            # Pad rows to ensure consistent column count
+            for i, row in enumerate(cleaned_values):
+                while len(row) < max_cols:
+                    row.append('')
+                cleaned_values[i] = row
+            
+            # Create DataFrame
+            df = pd.DataFrame(cleaned_values[1:], columns=cleaned_values[0])
+            
+            # Remove completely empty rows and columns
+            df = df.dropna(axis=1, how='all')
+            df = df.dropna(axis=0, how='all')
+            
+            # For Summary sheet, only keep the first two columns to avoid duplicates
+            if len(df.columns) >= 2:
+                df = df.iloc[:, :2]
+                df.columns = ['Summary Metric', 'Value']
+            
+        else:
+            # For other sheets, use standard method
+            all_records = worksheet.get_all_records()
+            df = pd.DataFrame(all_records)
         
         return df
         
@@ -124,13 +164,15 @@ with st.sidebar:
             
             if sheet_url:
                 with st.spinner("🔄 Loading data from Google Sheets..."):
-                    # Load main dashboard sheet only
+                    # Load both sheets: "JNG V2.0_GTM Dashboard" and "Summary"
                     df1 = load_google_sheet_cached(sheet_url, "JNG V2.0_GTM Dashboard")  # Main tracker data
-                    df2 = None  # Skip Summary sheet to avoid duplicate column errors
-                    df3 = None  # Skip Summary sheet to avoid duplicate column errors
+                    df2 = load_google_sheet_cached(sheet_url, "Summary")    # Summary data
+                    df3 = df2  # Use df2 for summary metrics
                 
                 if df1 is not None:
                     st.success(f"✅ Successfully loaded Dashboard sheet with {len(df1)} rows")
+                if df2 is not None:
+                    st.success(f"✅ Successfully loaded Summary sheet with {len(df2)} rows")
                     
             else:
                 df1, df2, df3 = None, None, None
