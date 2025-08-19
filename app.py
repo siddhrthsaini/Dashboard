@@ -124,15 +124,13 @@ with st.sidebar:
             
             if sheet_url:
                 with st.spinner("🔄 Loading data from Google Sheets..."):
-                    # Load both sheets: "JNG V2.0_GTM Dashboard" and "Summary"
+                    # Load main dashboard sheet only
                     df1 = load_google_sheet_cached(sheet_url, "JNG V2.0_GTM Dashboard")  # Main tracker data
-                    df2 = load_google_sheet_cached(sheet_url, "Summary")    # Summary data
-                    df3 = None  # We'll use df2 for summary metrics
+                    df2 = None  # Skip Summary sheet to avoid duplicate column errors
+                    df3 = None  # Skip Summary sheet to avoid duplicate column errors
                 
                 if df1 is not None:
                     st.success(f"✅ Successfully loaded Dashboard sheet with {len(df1)} rows")
-                if df2 is not None:
-                    st.success(f"✅ Successfully loaded Summary sheet with {len(df2)} rows")
                     
             else:
                 df1, df2, df3 = None, None, None
@@ -326,15 +324,5 @@ if df1 is not None and "pillar" in col_map:
     # Export strategic pillars summary
     csv_pillars = pillar_summary.to_csv(index=False).encode("utf-8")
     st.download_button("⬇️ Download Strategic Pillars Summary as CSV", data=csv_pillars, file_name="strategic_pillars_summary.csv", mime="text/csv")
-
-# Show raw data tables for debugging
-with st.expander("🔍 Raw Data Tables (for debugging)"):
-    if df1 is not None:
-        st.subheader("📋 Raw Dashboard Data")
-        st.dataframe(df1, use_container_width=True)
-    
-    if df2 is not None:
-        st.subheader("📋 Raw Summary Data") 
-        st.dataframe(df2, use_container_width=True)
 
 st.caption("Tip: Use the sidebar to upload updated CSVs anytime.")
