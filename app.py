@@ -73,7 +73,7 @@ with st.sidebar:
     data_source = st.radio(
         "Choose data source:",
         ["📁 Local CSV Files", "☁️ Google Sheets (Live Updates)"],
-        index=0
+        index=1  # Default to Google Sheets since it's working
     )
     
     # Auto-refresh toggle
@@ -110,20 +110,20 @@ with st.sidebar:
         if os.path.exists('google-credentials.json'):
             st.success("✅ Google credentials found!")
             
-            # Pre-filled with the provided Google Sheet URL
-            default_sheet_url = "https://docs.google.com/spreadsheets/d/1j1KMU21-H6wlrz5j2KZeqMWktrTDUJ5-/edit?usp=sharing&ouid=108501907981210363712&rtpof=true&sd=true"
+            # Pre-filled with the working Google Sheet URL
+            default_sheet_url = "https://docs.google.com/spreadsheets/d/186RIUMro2AO0JofZjJFRV6HSLpGQN1PDJeTsqBYXde4/edit?usp=sharing"
             
             sheet_url = st.text_input(
                 "Google Sheet URL:",
                 value=default_sheet_url,
-                help="Your Google Sheet URL (pre-filled with your sheet)"
+                help="Your Google Sheet URL (pre-filled with working sheet)"
             )
             
             if sheet_url:
                 st.info("🔄 Loading data from Google Sheets...")
                 
-                # Load both sheets: "Dashboard" and "Summary"
-                df1 = load_google_sheet(sheet_url, "Dashboard")  # Main tracker data
+                # Load both sheets: "JNG V2.0_GTM Dashboard" and "Summary"
+                df1 = load_google_sheet(sheet_url, "JNG V2.0_GTM Dashboard")  # Main tracker data
                 df2 = load_google_sheet(sheet_url, "Summary")    # Summary data
                 df3 = None  # We'll use df2 for summary metrics
                 
