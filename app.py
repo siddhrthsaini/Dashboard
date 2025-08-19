@@ -328,44 +328,7 @@ if df1 is not None:
 else:
     st.warning("Could not find or load the main tracker CSV. Please upload it in the sidebar or place it next to app.py with the filename **JNG_GTM_Dashboard-Tracker.csv**.")
 
-# Show Summary sheet data (from Google Sheets or CSV)
-if df2 is not None:
-    st.subheader("📊 Summary Data")
-    if data_source == "☁️ Google Sheets (Live Updates)":
-        st.info("📈 Data from Google Sheets 'Summary' sheet - Updates automatically!")
-    else:
-        st.info("📈 Data from uploaded CSV or local file")
-    
-    # Display summary data nicely
-    if len(df2) > 0:
-        # Try to create a nice summary display
-        if 'Summary Metric' in df2.columns and 'Value' in df2.columns:
-            # Create summary cards
-            col1, col2, col3, col4 = st.columns(4)
-            
-            # Find key metrics
-            total_deliverables = df2[df2['Summary Metric'] == 'Total Deliverables']['Value'].iloc[0] if len(df2[df2['Summary Metric'] == 'Total Deliverables']) > 0 else 'N/A'
-            not_started = df2[df2['Summary Metric'] == 'Not Started (count)']['Value'].iloc[0] if len(df2[df2['Summary Metric'] == 'Not Started (count)']) > 0 else 'N/A'
-            in_progress = df2[df2['Summary Metric'] == 'In Progress (count)']['Value'].iloc[0] if len(df2[df2['Summary Metric'] == 'In Progress (count)']) > 0 else 'N/A'
-            completed = df2[df2['Summary Metric'] == 'Completed (count)']['Value'].iloc[0] if len(df2[df2['Summary Metric'] == 'Completed (count)']) > 0 else 'N/A'
-            
-            with col1:
-                st.metric("Total Deliverables", total_deliverables)
-            with col2:
-                st.metric("Not Started", not_started)
-            with col3:
-                st.metric("In Progress", in_progress)
-            with col4:
-                st.metric("Completed", completed)
-        
-        # Show the full data table
-        st.dataframe(df2, use_container_width=True)
-        
-        # Export summary data
-        csv_summary = df2.to_csv(index=False).encode("utf-8")
-        st.download_button("⬇️ Download summary data as CSV", data=csv_summary, file_name="summary_data.csv", mime="text/csv")
-    else:
-        st.warning("No summary data available")
+# Note: Basic summary data section removed - only showing Strategic Pillars Summary
 
 # Create Strategic Pillars Summary from main tracker data
 if df1 is not None and "pillar" in col_map:
