@@ -24,15 +24,34 @@ def load_google_sheet_cached(sheet_url, worksheet_name):
 def load_google_sheet(sheet_url, worksheet_name):
     """Load data from Google Sheets with error handling"""
     try:
-        # Check if credentials file exists
-        if not os.path.exists('google-credentials.json'):
-            st.error("Google credentials file not found.")
-            return None
-        
-        # Set up credentials
+        # Set up credentials - try Streamlit secrets first, then local file
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
-        creds = Credentials.from_service_account_file('google-credentials.json', scopes=scope)
-        client = gspread.authorize(creds)
+        
+        # Try to get credentials from Streamlit secrets (for cloud deployment)
+        try:
+            import json
+            service_account_info = {
+                "type": st.secrets["gcp_service_account"]["type"],
+                "project_id": st.secrets["gcp_service_account"]["project_id"],
+                "private_key_id": st.secrets["gcp_service_account"]["private_key_id"],
+                "private_key": st.secrets["gcp_service_account"]["private_key"],
+                "client_email": st.secrets["gcp_service_account"]["client_email"],
+                "client_id": st.secrets["gcp_service_account"]["client_id"],
+                "auth_uri": st.secrets["gcp_service_account"]["auth_uri"],
+                "token_uri": st.secrets["gcp_service_account"]["token_uri"],
+                "auth_provider_x509_cert_url": st.secrets["gcp_service_account"]["auth_provider_x509_cert_url"],
+                "client_x509_cert_url": st.secrets["gcp_service_account"]["client_x509_cert_url"]
+            }
+            creds = Credentials.from_service_account_info(service_account_info, scopes=scope)
+            client = gspread.authorize(creds)
+        except:
+            # Fallback to local file (for local development)
+            if not os.path.exists('google-credentials.json'):
+                st.error("Google credentials not found in Streamlit secrets or local file.")
+                return None
+            
+            creds = Credentials.from_service_account_file('google-credentials.json', scopes=scope)
+            client = gspread.authorize(creds)
         
         # Extract sheet ID from URL
         sheet_id = sheet_url.split('/d/')[1].split('/')[0]
@@ -151,9 +170,23 @@ with st.sidebar:
     else:  # Google Sheets mode
         st.markdown("### ☁️ Google Sheets Setup")
         
-        # Check if credentials exist
-        if os.path.exists('google-credentials.json'):
-            st.success("✅ Google credentials found!")
+        # Check if credentials exist (try secrets first, then local file)
+        try:
+            # Try to access secrets (for cloud deployment)
+            test_secret = st.secrets["gcp_service_account"]["type"]
+            st.success("✅ Google credentials found in Streamlit secrets!")
+        except:
+            # Fallback to local file check (for local development)
+            if os.path.exists('google-credentials.json'):
+                st.success("✅ Google credentials found in local file!")
+            else:
+                st.error("❌ Google credentials not found!")
+                st.markdown("""
+                **Setup Required:**
+                1. For local development: Place `google-credentials.json` in this folder
+                2. For cloud deployment: Add credentials to Streamlit Cloud secrets
+                """)
+                df1, df2, df3 = None, None, None
             
             # Pre-filled with the working Google Sheet URL
             default_sheet_url = "https://docs.google.com/spreadsheets/d/186RIUMro2AO0JofZjJFRV6HSLpGQN1PDJeTsqBYXde4/edit?usp=sharing"
