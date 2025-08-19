@@ -32,7 +32,7 @@ def load_google_sheet(sheet_url, worksheet_name):
         # Set up credentials
         scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
         creds = Credentials.from_service_account_file('google-credentials.json', scopes=scope)
-        client = gspread.authorize(creads)
+        client = gspread.authorize(creds)
         
         # Extract sheet ID from URL
         sheet_id = sheet_url.split('/d/')[1].split('/')[0]
