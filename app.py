@@ -264,11 +264,11 @@ if df1 is not None:
     st.subheader("📌 Summary KPIs")
     if df3 is not None and set(["Summary Metric","Value"]).issubset(set(df3.columns)):
         kpi_map = {row["Summary Metric"]: row["Value"] for _, row in df3.iterrows()}
-        total = kpi_map.get("Total Deliverables", len(df1))
-        not_started = kpi_map.get("Not Started (count)", int((df1[col_map["status"]]=="Not Started").sum()) if "status" in col_map else None)
-        in_progress = kpi_map.get("In Progress (count)", int((df1[col_map["status"]]=="In Progress").sum()) if "status" in col_map else None)
-        completed = kpi_map.get("Completed (count)", int((df1[col_map["status"]]=="Completed").sum()) if "status" in col_map else None)
-        pct_completed = kpi_map.get("% Completed", round(100*completed/total,1) if total else 0)
+        total = int(kpi_map.get("Total Deliverables", len(df1)))
+        not_started = int(kpi_map.get("Not Started (count)", (df1[col_map["status"]]=="Not Started").sum() if "status" in col_map else 0))
+        in_progress = int(kpi_map.get("In Progress (count)", (df1[col_map["status"]]=="In Progress").sum() if "status" in col_map else 0))
+        completed = int(kpi_map.get("Completed (count)", (df1[col_map["status"]]=="Completed").sum() if "status" in col_map else 0))
+        pct_completed = float(kpi_map.get("% Completed", round(100*completed/total,1) if total else 0))
     else:
         # Compute from df1
         total = len(df1)
